@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import '../widgets/browser_app_bar.dart';
 import '../widgets/browser_bottom_bar.dart';
 import '../widgets/url_bar.dart';
 import '../widgets/home_page.dart';
-import '../widgets/developer_tools.dart';
+import '../widgets/userscript_manager.dart';
 import '../services/bookmark_service.dart';
+import '../services/userscript_service.dart';
 import '../utils/url_helper.dart';
 import '../utils/app_colors.dart';
 
@@ -16,29 +16,56 @@ class BrowserScreen extends StatefulWidget {
   State<BrowserScreen> createState() => _BrowserScreenState();
 }
 
-class _BrowserScreenState extends State<BrowserScreen> {
+class _BrowserScreenState extends State<BrowserScreen> with TickerProviderStateMixin {
   late WebViewController _controller;
+  late AnimationController _fadeController;
+  late Animation<double> _fadeAnimation;
+  
   String _currentUrl = '';
   String _currentTitle = '';
   bool _isLoading = false;
   bool _canGoBack = false;
   bool _canGoForward = false;
   bool _showHomePage = true;
-  bool _showDeveloperTools = false;
+  bool _showUserScriptManager = false;
   bool _isDesktopMode = false;
   double _loadingProgress = 0.0;
   
   @override
   void initState() {
     super.initState();
+    _initializeAnimations();
     _initializeWebView();
+    _initializeServices();
+  }
+
+  void _initializeAnimations() {
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _fadeAnimation = CurvedAnimation(
+      parent: _fadeController,
+      curve: Curves.easeInOut,
+    );
+    _fadeController.forward();
+  }
+
+  @override
+  void dispose() {
+    _fadeController.dispose();
+    super.dispose();
+  }
+
+  void _initializeServices() {
     BookmarkService.instance.initialize();
+    UserScriptService.instance.initialize();
   }
 
   void _initializeWebView() {
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setUserAgent(_isDesktopMode ? _getDesktopUserAgent() : null)
+      ..setUserAgent(_isDesktopMode ? _getDesktopUserAgent() : _getMobileUserAgent())
       ..setNavigationDelegate(
         NavigationDelegate(
           onProgress: (int progress) {
@@ -61,6 +88,7 @@ class _BrowserScreenState extends State<BrowserScreen> {
             });
             await _updateNavigationState();
             await _updatePageTitle();
+            await _injectUserScripts(url);
           },
           onUrlChange: (UrlChange change) {
             if (change.url != null) {
@@ -75,6 +103,22 @@ class _BrowserScreenState extends State<BrowserScreen> {
 
   String _getDesktopUserAgent() {
     return 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+  }
+
+  String _getMobileUserAgent() {
+    return 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
+  }
+
+  Future<void> _injectUserScripts(String url) async {
+    try {
+      final domain = Uri.parse(url).host;
+      final script = UserScriptService.instance.getInjectableScript(domain);
+      if (script.isNotEmpty) {
+        await _controller.runJavaScript(script);
+      }
+    } catch (e) {
+      // Silently handle errors
+    }
   }
 
   Future<void> _updateNavigationState() async {
@@ -135,7 +179,7 @@ class _BrowserScreenState extends State<BrowserScreen> {
     setState(() {
       _isDesktopMode = !_isDesktopMode;
     });
-    _controller.setUserAgent(_isDesktopMode ? _getDesktopUserAgent() : null);
+    _controller.setUserAgent(_isDesktopMode ? _getDesktopUserAgent() : _getMobileUserAgent());
     if (!_showHomePage) {
       _controller.reload();
     }
@@ -151,9 +195,9 @@ class _BrowserScreenState extends State<BrowserScreen> {
     });
   }
 
-  void _toggleDeveloperTools() {
+  void _toggleUserScriptManager() {
     setState(() {
-      _showDeveloperTools = !_showDeveloperTools;
+      _showUserScriptManager = !_showUserScriptManager;
     });
   }
 
@@ -176,70 +220,167 @@ class _BrowserScreenState extends State<BrowserScreen> {
     setState(() {}); // Refresh UI
   }
 
+  void _showBookmarkDialog() {
+    if (_currentUrl.isEmpty) return;
+    
+    showDialog(
+      context: context,
+      barrierColor: AppColors.overlay,
+      builder: (context) => Dialog(
+        backgroundColor: AppColors.glassBackground,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryTransparent,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.bookmark,
+                      size: 20,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _currentTitle.isNotEmpty ? _currentTitle : 'Bookmark',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        Text(
+                          UrlHelper.getDisplayUrl(_currentUrl),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(color: AppColors.textSecondary),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        _toggleBookmark();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: Text(
+                        BookmarkService.instance.isBookmarked(_currentUrl) 
+                            ? 'Remove' 
+                            : 'Add',
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Column(
-          children: [
-            // Custom App Bar
-            BrowserAppBar(
-              title: _showHomePage ? 'Browseitt' : _currentTitle,
-              isBookmarked: BookmarkService.instance.isBookmarked(_currentUrl),
-              onBookmarkToggle: _toggleBookmark,
-              onShowDeveloperTools: _toggleDeveloperTools,
-              showBookmarkButton: !_showHomePage,
-            ),
-            
-            // URL Bar
-            UrlBar(
-              currentUrl: _currentUrl,
-              onUrlSubmitted: _navigateToUrl,
-              isLoading: _isLoading,
-              loadingProgress: _loadingProgress,
-            ),
-            
-            // Content Area
-            Expanded(
-              child: Stack(
-                children: [
-                  // WebView or Home Page
-                  if (_showHomePage)
-                    HomePage(
-                      onUrlSelected: _navigateToUrl,
-                    )
-                  else
-                    WebViewWidget(controller: _controller),
-                  
-                  // Developer Tools Overlay
-                  if (_showDeveloperTools)
-                    Positioned(
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      child: DeveloperTools(
-                        currentUrl: _currentUrl,
-                        controller: _controller,
-                        onClose: () => setState(() => _showDeveloperTools = false),
-                      ),
-                    ),
-                ],
+        child: FadeTransition(
+          opacity: _fadeAnimation,
+          child: Column(
+            children: [
+              // URL Bar only (no app bar)
+              UrlBar(
+                currentUrl: _currentUrl,
+                onUrlSubmitted: _navigateToUrl,
+                isLoading: _isLoading,
+                loadingProgress: _loadingProgress,
+                onBookmarkPressed: _showBookmarkDialog,
+                onUserScriptPressed: _toggleUserScriptManager,
+                showActions: !_showHomePage,
               ),
-            ),
-            
-            // Bottom Navigation Bar
-            BrowserBottomBar(
-              canGoBack: _canGoBack,
-              canGoForward: _canGoForward,
-              isDesktopMode: _isDesktopMode,
-              onGoBack: _goBack,
-              onGoForward: _goForward,
-              onReload: _reload,
-              onHome: _showHome,
-              onToggleDesktopMode: _toggleDesktopMode,
-            ),
-          ],
+              
+              // Content Area
+              Expanded(
+                child: Stack(
+                  children: [
+                    // WebView or Home Page
+                    if (_showHomePage)
+                      HomePage(
+                        onUrlSelected: _navigateToUrl,
+                      )
+                    else
+                      ClipRRect(
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(12),
+                        ),
+                        child: WebViewWidget(controller: _controller),
+                      ),
+                    
+                    // User Script Manager Overlay
+                    if (_showUserScriptManager)
+                      Positioned(
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        child: UserScriptManager(
+                          onClose: () => setState(() => _showUserScriptManager = false),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              
+              // Bottom Navigation Bar
+              BrowserBottomBar(
+                canGoBack: _canGoBack,
+                canGoForward: _canGoForward,
+                isDesktopMode: _isDesktopMode,
+                onGoBack: _goBack,
+                onGoForward: _goForward,
+                onReload: _reload,
+                onHome: _showHome,
+                onToggleDesktopMode: _toggleDesktopMode,
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -16,21 +16,42 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   List<Bookmark> _bookmarks = [];
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  
   final List<QuickAccess> _quickAccess = [
-    QuickAccess('Google', 'https://google.com', Icons.search),
-    QuickAccess('GitHub', 'https://github.com', Icons.code),
-    QuickAccess('Stack Overflow', 'https://stackoverflow.com', Icons.help_outline),
-    QuickAccess('Flutter', 'https://flutter.dev', Icons.widgets),
-    QuickAccess('MDN', 'https://developer.mozilla.org', Icons.article),
-    QuickAccess('YouTube', 'https://youtube.com', Icons.play_circle_outline),
+    QuickAccess('Google', 'https://google.com', '🔍'),
+    QuickAccess('GitHub', 'https://github.com', '📁'),
+    QuickAccess('Stack Overflow', 'https://stackoverflow.com', '❓'),
+    QuickAccess('Flutter', 'https://flutter.dev', '📱'),
+    QuickAccess('MDN', 'https://developer.mozilla.org', '📚'),
+    QuickAccess('YouTube', 'https://youtube.com', '📺'),
+    QuickAccess('Reddit', 'https://reddit.com', '💬'),
+    QuickAccess('Twitter', 'https://twitter.com', '🐦'),
+    QuickAccess('Facebook', 'https://facebook.com', '👥'),
   ];
 
   @override
   void initState() {
     super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    _fadeAnimation = CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeInOut,
+    );
     _loadBookmarks();
+    _animationController.forward();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 
   void _loadBookmarks() {
@@ -42,107 +63,100 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: AppColors.background,
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Welcome section
-            const SizedBox(height: 20),
-            const Text(
-              'Welcome to Browseitt',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Fast, minimalistic browsing',
-              style: TextStyle(
-                fontSize: 16,
-                color: AppColors.textSecondary,
-              ),
-            ),
-            
-            const SizedBox(height: 40),
-            
-            // Quick Access
-            const Text(
-              'Quick Access',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 16),
-            
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                childAspectRatio: 1.0,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-              ),
-              itemCount: _quickAccess.length,
-              itemBuilder: (context, index) {
-                final item = _quickAccess[index];
-                return _QuickAccessTile(
-                  item: item,
-                  onTap: () => widget.onUrlSelected(item.url),
-                );
-              },
-            ),
-            
-            // Bookmarks section
-            if (_bookmarks.isNotEmpty) ...[
-              const SizedBox(height: 40),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Bookmarks',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: _showBookmarksSheet,
-                    child: const Text(
-                      'See All',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            AppColors.background,
+            AppColors.background.withOpacity(0.95),
+          ],
+        ),
+      ),
+      child: FadeTransition(
+        opacity: _fadeAnimation,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
               const SizedBox(height: 16),
               
-              ListView.builder(
+              // Quick Access Grid
+              GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: _bookmarks.take(5).length,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  childAspectRatio: 1.0,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                ),
+                itemCount: _quickAccess.length,
                 itemBuilder: (context, index) {
-                  final bookmark = _bookmarks[index];
-                  return _BookmarkTile(
-                    bookmark: bookmark,
-                    onTap: () => widget.onUrlSelected(bookmark.url),
-                    onDelete: () => _deleteBookmark(bookmark.id),
+                  final item = _quickAccess[index];
+                  return _QuickAccessTile(
+                    item: item,
+                    onTap: () => widget.onUrlSelected(item.url),
+                    animationDelay: index * 50,
                   );
                 },
               ),
+              
+              // Bookmarks section
+              if (_bookmarks.isNotEmpty) ...[
+                const SizedBox(height: 32),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Bookmarks',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: _showBookmarksSheet,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryTransparent,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text(
+                          'See All',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: _bookmarks.take(5).length,
+                  itemBuilder: (context, index) {
+                    final bookmark = _bookmarks[index];
+                    return _BookmarkTile(
+                      bookmark: bookmark,
+                      onTap: () => widget.onUrlSelected(bookmark.url),
+                      onDelete: () => _deleteBookmark(bookmark.id),
+                    );
+                  },
+                ),
+              ],
+              
+              const SizedBox(height: 80), // Extra space for bottom bar
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -151,27 +165,49 @@ class _HomePageState extends State<HomePage> {
   void _showBookmarksSheet() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
       builder: (context) {
         return Container(
-          padding: const EdgeInsets.all(20),
+          height: MediaQuery.of(context).size.height * 0.7,
+          decoration: const BoxDecoration(
+            color: AppColors.glassBackground,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+          ),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'All Bookmarks',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: const BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(color: AppColors.border, width: 0.5),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Text(
+                      'All Bookmarks',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const Spacer(),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: const Icon(
+                        Icons.close,
+                        size: 18,
+                        color: AppColors.iconSecondary,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 16),
               Expanded(
                 child: ListView.builder(
+                  padding: const EdgeInsets.all(16),
                   itemCount: _bookmarks.length,
                   itemBuilder: (context, index) {
                     final bookmark = _bookmarks[index];
@@ -202,55 +238,113 @@ class _HomePageState extends State<HomePage> {
 class QuickAccess {
   final String name;
   final String url;
-  final IconData icon;
+  final String emoji;
 
-  QuickAccess(this.name, this.url, this.icon);
+  QuickAccess(this.name, this.url, this.emoji);
 }
 
-class _QuickAccessTile extends StatelessWidget {
+class _QuickAccessTile extends StatefulWidget {
   final QuickAccess item;
   final VoidCallback onTap;
+  final int animationDelay;
 
   const _QuickAccessTile({
     required this.item,
     required this.onTap,
+    required this.animationDelay,
   });
+
+  @override
+  State<_QuickAccessTile> createState() => _QuickAccessTileState();
+}
+
+class _QuickAccessTileState extends State<_QuickAccessTile>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  bool _isPressed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 150),
+      vsync: this,
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: AppColors.border,
-            width: 0.5,
-          ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              item.icon,
-              size: 32,
-              color: AppColors.iconPrimary,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              item.name,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: AppColors.textPrimary,
+      onTapDown: (_) {
+        setState(() => _isPressed = true);
+        _controller.forward();
+      },
+      onTapUp: (_) {
+        setState(() => _isPressed = false);
+        _controller.reverse();
+        widget.onTap();
+      },
+      onTapCancel: () {
+        setState(() => _isPressed = false);
+        _controller.reverse();
+      },
+      child: AnimatedBuilder(
+        animation: _scaleAnimation,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: _scaleAnimation.value,
+            child: Container(
+              decoration: BoxDecoration(
+                color: _isPressed 
+                    ? AppColors.primaryTransparent 
+                    : AppColors.surface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: _isPressed ? AppColors.primary : AppColors.border,
+                  width: 0.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withOpacity(0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    widget.item.emoji,
+                    style: const TextStyle(fontSize: 28),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    widget.item.name,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textPrimary,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -270,26 +364,32 @@ class _BookmarkTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 6),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.border, width: 0.5),
+      ),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
         leading: Container(
-          width: 32,
-          height: 32,
+          width: 28,
+          height: 28,
           decoration: BoxDecoration(
-            color: AppColors.surfaceVariant,
+            color: AppColors.primaryTransparent,
             borderRadius: BorderRadius.circular(6),
           ),
-          child: const Icon(
-            Icons.bookmark,
-            size: 16,
-            color: AppColors.primary,
+          child: const Center(
+            child: Text(
+              '🔖',
+              style: TextStyle(fontSize: 14),
+            ),
           ),
         ),
         title: Text(
           bookmark.title,
           style: const TextStyle(
-            fontSize: 15,
+            fontSize: 13,
             fontWeight: FontWeight.w500,
             color: AppColors.textPrimary,
           ),
@@ -299,7 +399,7 @@ class _BookmarkTile extends StatelessWidget {
         subtitle: Text(
           UrlHelper.getDisplayUrl(bookmark.url),
           style: const TextStyle(
-            fontSize: 13,
+            fontSize: 11,
             color: AppColors.textSecondary,
           ),
           maxLines: 1,
@@ -307,10 +407,13 @@ class _BookmarkTile extends StatelessWidget {
         ),
         trailing: GestureDetector(
           onTap: onDelete,
-          child: const Icon(
-            Icons.delete_outline,
-            size: 18,
-            color: AppColors.iconSecondary,
+          child: Container(
+            padding: const EdgeInsets.all(6),
+            child: const Icon(
+              Icons.close,
+              size: 14,
+              color: AppColors.iconSecondary,
+            ),
           ),
         ),
         onTap: onTap,
