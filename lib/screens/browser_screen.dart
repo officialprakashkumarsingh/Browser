@@ -333,8 +333,11 @@ class _BrowserScreenState extends State<BrowserScreen> with TickerProviderStateM
                 isLoading: _isLoading,
                 loadingProgress: _loadingProgress,
                 onBookmarkPressed: _showBookmarkDialog,
-                onUserScriptPressed: _toggleUserScriptManager,
                 showActions: !_showHomePage,
+                canGoBack: _canGoBack,
+                canGoForward: _canGoForward,
+                onGoBack: _goBack,
+                onGoForward: _goForward,
               ),
               
               // Content Area
@@ -378,6 +381,7 @@ class _BrowserScreenState extends State<BrowserScreen> with TickerProviderStateM
                 onReload: _reload,
                 onHome: _showHome,
                 onToggleDesktopMode: _toggleDesktopMode,
+                onUserScriptPressed: _toggleUserScriptManager,
               ),
             ],
           ),
