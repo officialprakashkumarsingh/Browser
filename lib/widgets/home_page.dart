@@ -63,16 +63,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            AppColors.background,
-            AppColors.background.withOpacity(0.95),
-          ],
-        ),
-      ),
+      color: AppColors.background,
       child: FadeTransition(
         opacity: _fadeAnimation,
         child: SingleChildScrollView(
@@ -170,9 +161,17 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       builder: (context) {
         return Container(
           height: MediaQuery.of(context).size.height * 0.7,
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             color: AppColors.glassBackground,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+            border: Border.all(color: AppColors.glassBorder, width: 1),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 20,
+                offset: const Offset(0, -8),
+              ),
+            ],
           ),
           child: Column(
             children: [
@@ -180,7 +179,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 padding: const EdgeInsets.all(16),
                 decoration: const BoxDecoration(
                   border: Border(
-                    bottom: BorderSide(color: AppColors.border, width: 0.5),
+                    bottom: BorderSide(color: AppColors.border, width: 1),
                   ),
                 ),
                 child: Row(
@@ -311,11 +310,11 @@ class _QuickAccessTileState extends State<_QuickAccessTile>
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: _isPressed ? AppColors.primary : AppColors.border,
-                  width: 0.5,
+                  width: 1,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primary.withOpacity(0.1),
+                    color: Colors.black.withOpacity(0.05),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -368,7 +367,7 @@ class _BookmarkTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.border, width: 0.5),
+        border: Border.all(color: AppColors.border, width: 1),
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),

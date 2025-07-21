@@ -8,8 +8,11 @@ class UrlBar extends StatefulWidget {
   final bool isLoading;
   final double loadingProgress;
   final VoidCallback? onBookmarkPressed;
-  final VoidCallback? onUserScriptPressed;
   final bool showActions;
+  final bool canGoBack;
+  final bool canGoForward;
+  final VoidCallback? onGoBack;
+  final VoidCallback? onGoForward;
 
   const UrlBar({
     super.key,
@@ -18,8 +21,11 @@ class UrlBar extends StatefulWidget {
     required this.isLoading,
     required this.loadingProgress,
     this.onBookmarkPressed,
-    this.onUserScriptPressed,
     this.showActions = false,
+    this.canGoBack = false,
+    this.canGoForward = false,
+    this.onGoBack,
+    this.onGoForward,
   });
 
   @override
@@ -96,20 +102,36 @@ class _UrlBarState extends State<UrlBar> with TickerProviderStateMixin {
             decoration: BoxDecoration(
               color: AppColors.urlBarBackground,
               borderRadius: BorderRadius.circular(12),
-              border: _isEditing ? Border.all(
-                color: AppColors.primary,
-                width: 1.5,
-              ) : null,
+              border: Border.all(
+                color: _isEditing ? AppColors.primary : AppColors.border,
+                width: 1,
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.primary.withOpacity(_isEditing ? 0.2 : 0.05),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
+                  color: Colors.black.withOpacity(0.08),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
             child: Row(
               children: [
+                // Back button
+                if (widget.showActions && widget.onGoBack != null)
+                  _NavigationButton(
+                    icon: Icons.arrow_back_ios,
+                    isEnabled: widget.canGoBack,
+                    onPressed: widget.onGoBack!,
+                  ),
+                
+                // Forward button
+                if (widget.showActions && widget.onGoForward != null)
+                  _NavigationButton(
+                    icon: Icons.arrow_forward_ios,
+                    isEnabled: widget.canGoForward,
+                    onPressed: widget.onGoForward!,
+                  ),
+                
                 // Search/URL icon
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -117,7 +139,7 @@ class _UrlBarState extends State<UrlBar> with TickerProviderStateMixin {
                     _isEditing ? Icons.search : _getSecurityIcon(),
                     size: 16,
                     color: _isEditing 
-                        ? AppColors.primary 
+                        ? AppColors.iconSecondary 
                         : _getSecurityColor(),
                   ),
                 ),
@@ -145,7 +167,10 @@ class _UrlBarState extends State<UrlBar> with TickerProviderStateMixin {
                         ),
                         border: InputBorder.none,
                         contentPadding: EdgeInsets.zero,
+                        fillColor: Colors.transparent,
+                        filled: true,
                       ),
+                      cursorColor: AppColors.primary,
                     ),
                   ),
                 ),
@@ -157,14 +182,6 @@ class _UrlBarState extends State<UrlBar> with TickerProviderStateMixin {
                     _ActionButton(
                       icon: Icons.bookmark_border,
                       onPressed: widget.onBookmarkPressed!,
-                      size: 16,
-                    ),
-                  
-                  // User Script button
-                  if (widget.onUserScriptPressed != null)
-                    _ActionButton(
-                      icon: Icons.code,
-                      onPressed: widget.onUserScriptPressed!,
                       size: 16,
                     ),
                 ],
@@ -224,6 +241,90 @@ class _UrlBarState extends State<UrlBar> with TickerProviderStateMixin {
       return AppColors.warning;
     }
     return AppColors.iconSecondary;
+  }
+}
+
+class _NavigationButton extends StatefulWidget {
+  final IconData icon;
+  final bool isEnabled;
+  final VoidCallback onPressed;
+
+  const _NavigationButton({
+    required this.icon,
+    required this.isEnabled,
+    required this.onPressed,
+  });
+
+  @override
+  State<_NavigationButton> createState() => _NavigationButtonState();
+}
+
+class _NavigationButtonState extends State<_NavigationButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  bool _isPressed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 100),
+      vsync: this,
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.9).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: widget.isEnabled ? (_) {
+        setState(() => _isPressed = true);
+        _controller.forward();
+      } : null,
+      onTapUp: widget.isEnabled ? (_) {
+        setState(() => _isPressed = false);
+        _controller.reverse();
+        widget.onPressed();
+      } : null,
+      onTapCancel: widget.isEnabled ? () {
+        setState(() => _isPressed = false);
+        _controller.reverse();
+      } : null,
+      child: AnimatedBuilder(
+        animation: _scaleAnimation,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: _scaleAnimation.value,
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: _isPressed 
+                    ? AppColors.primaryTransparent 
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Icon(
+                widget.icon,
+                size: 14,
+                color: widget.isEnabled 
+                    ? AppColors.iconPrimary 
+                    : AppColors.iconInactive,
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 }
 

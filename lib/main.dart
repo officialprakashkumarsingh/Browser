@@ -47,7 +47,7 @@ class BrowseittApp extends StatelessWidget {
         useMaterial3: true,
         fontFamily: 'SF Pro Display', // iOS-style font
         
-        // App bar theme (though we removed app bars)
+        // App bar theme - minimal and clean
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.transparent,
           foregroundColor: AppColors.textPrimary,
@@ -56,10 +56,10 @@ class BrowseittApp extends StatelessWidget {
           systemOverlayStyle: SystemUiOverlayStyle.dark,
         ),
         
-        // Scaffold theme with transparent background
+        // Scaffold theme with pure white background
         scaffoldBackgroundColor: AppColors.background,
         
-        // Button themes for consistent styling
+        // Button themes for consistent iOS-style
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.primary,
@@ -69,6 +69,7 @@ class BrowseittApp extends StatelessWidget {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
         ),
         
@@ -78,10 +79,11 @@ class BrowseittApp extends StatelessWidget {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
         ),
         
-        // Dialog theme for user scripts and bookmarks
+        // Dialog theme for clean modals
         dialogTheme: DialogTheme(
           backgroundColor: AppColors.glassBackground,
           shape: RoundedRectangleBorder(
@@ -98,36 +100,40 @@ class BrowseittApp extends StatelessWidget {
           ),
         ),
         
-        // Text themes for better consistency
+        // Text themes for better hierarchy
         textTheme: const TextTheme(
           headlineSmall: TextStyle(
             color: AppColors.textPrimary,
             fontWeight: FontWeight.w600,
+            fontSize: 18,
           ),
           bodyLarge: TextStyle(
             color: AppColors.textPrimary,
             fontWeight: FontWeight.w400,
+            fontSize: 16,
           ),
           bodyMedium: TextStyle(
             color: AppColors.textSecondary,
             fontWeight: FontWeight.w400,
+            fontSize: 14,
           ),
           bodySmall: TextStyle(
             color: AppColors.textTertiary,
             fontWeight: FontWeight.w400,
+            fontSize: 12,
           ),
         ),
         
-        // Icon theme
+        // Icon theme with consistent sizing
         iconTheme: const IconThemeData(
           color: AppColors.iconPrimary,
           size: 20,
         ),
         
-        // Input decoration theme
+        // Input decoration theme for consistent styling
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: AppColors.surfaceVariant,
+          fillColor: Colors.white,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
             borderSide: const BorderSide(color: AppColors.border),
@@ -138,12 +144,13 @@ class BrowseittApp extends StatelessWidget {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: AppColors.primary),
+            borderSide: const BorderSide(color: AppColors.primary, width: 2),
           ),
           contentPadding: const EdgeInsets.all(12),
+          hintStyle: const TextStyle(color: AppColors.textTertiary),
         ),
         
-        // Page transitions for smoother navigation
+        // iOS-style page transitions for smoother navigation
         pageTransitionsTheme: const PageTransitionsTheme(
           builders: {
             TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
@@ -151,12 +158,28 @@ class BrowseittApp extends StatelessWidget {
           },
         ),
         
-        // Splash color and highlight color
+        // Splash and highlight colors - minimal and clean
         splashColor: AppColors.primaryTransparent,
         highlightColor: AppColors.primaryTransparent,
         
-        // Visual density for better touch targets
+        // Visual density for optimal touch targets
         visualDensity: VisualDensity.adaptivePlatformDensity,
+        
+        // Card theme for consistent containers
+        cardTheme: CardTheme(
+          color: AppColors.surface,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: const BorderSide(color: AppColors.border),
+          ),
+        ),
+        
+        // Divider theme for subtle separators
+        dividerTheme: const DividerThemeData(
+          color: AppColors.divider,
+          thickness: 1,
+        ),
       ),
       home: const BrowserScreen(),
     );

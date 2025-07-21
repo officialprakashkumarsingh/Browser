@@ -23,7 +23,7 @@ class _UserScriptManagerState extends State<UserScriptManager> with TickerProvid
   void initState() {
     super.initState();
     _animationController = AnimationController(
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 250),
       vsync: this,
     );
     _slideAnimation = CurvedAnimation(
@@ -80,7 +80,14 @@ class _UserScriptManagerState extends State<UserScriptManager> with TickerProvid
         decoration: BoxDecoration(
           color: AppColors.glassBackground,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-          border: Border.all(color: AppColors.glassBorder, width: 0.5),
+          border: Border.all(color: AppColors.glassBorder, width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 20,
+              offset: const Offset(0, -8),
+            ),
+          ],
         ),
         child: Column(
           children: [
@@ -89,7 +96,7 @@ class _UserScriptManagerState extends State<UserScriptManager> with TickerProvid
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: const BoxDecoration(
                 border: Border(
-                  bottom: BorderSide(color: AppColors.border, width: 0.5),
+                  bottom: BorderSide(color: AppColors.border, width: 1),
                 ),
               ),
               child: Row(
@@ -209,8 +216,8 @@ class _ScriptTile extends StatelessWidget {
         color: script.isEnabled ? AppColors.surface : AppColors.surfaceVariant,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: script.isEnabled ? AppColors.primaryTransparent : AppColors.border,
-          width: 0.5,
+          color: script.isEnabled ? AppColors.primary.withOpacity(0.2) : AppColors.border,
+          width: 1,
         ),
       ),
       child: Row(
@@ -287,28 +294,49 @@ class _AddScriptDialog extends StatefulWidget {
 
 class _AddScriptDialogState extends State<_AddScriptDialog> {
   final _nameController = TextEditingController();
-  final _domainController = TextEditingController();
   final _scriptController = TextEditingController();
 
   @override
   void dispose() {
     _nameController.dispose();
-    _domainController.dispose();
     _scriptController.dispose();
     super.dispose();
   }
 
+  String _extractDomainFromScript(String script) {
+    // Auto-detect domain from common script patterns
+    final patterns = [
+      RegExp(r'@match\s+https?://([^/\s]+)', caseSensitive: false),
+      RegExp(r'@include\s+https?://([^/\s]+)', caseSensitive: false),
+      RegExp(r'location\.hostname.*["\']([^"\']+)["\']', caseSensitive: false),
+      RegExp(r'window\.location\.host.*["\']([^"\']+)["\']', caseSensitive: false),
+      RegExp(r'document\.domain.*["\']([^"\']+)["\']', caseSensitive: false),
+    ];
+
+    for (final pattern in patterns) {
+      final match = pattern.firstMatch(script);
+      if (match != null) {
+        return match.group(1) ?? '*';
+      }
+    }
+
+    // If no specific domain found, use wildcard
+    return '*';
+  }
+
   Future<void> _addScript() async {
     if (_nameController.text.trim().isEmpty ||
-        _domainController.text.trim().isEmpty ||
         _scriptController.text.trim().isEmpty) {
       return;
     }
 
+    final script = _scriptController.text.trim();
+    final domain = _extractDomainFromScript(script);
+
     await UserScriptService.instance.addUserScript(
       name: _nameController.text.trim(),
-      domain: _domainController.text.trim(),
-      script: _scriptController.text.trim(),
+      domain: domain,
+      script: script,
     );
 
     widget.onScriptAdded();
@@ -339,11 +367,25 @@ class _AddScriptDialogState extends State<_AddScriptDialog> {
             _buildTextField('Script Name', _nameController, 'e.g., Remove Ads'),
             const SizedBox(height: 12),
             
-            _buildTextField('Domain', _domainController, 'e.g., google.com or *'),
+            _buildTextField('JavaScript Code', _scriptController, 
+              '// Auto-detects domain from script\n// Use @match, @include or check location.hostname\ndocument.querySelector(\'.ad\')?.remove();', maxLines: 6),
+            
             const SizedBox(height: 12),
             
-            _buildTextField('JavaScript Code', _scriptController, 
-              'document.querySelector(\'.ad\')?.remove();', maxLines: 4),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceVariant,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: const Text(
+                'Tip: Domain will be auto-detected from your script. Use @match https://example.com/* or check location.hostname for specific sites.',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ),
             
             const SizedBox(height: 20),
             
@@ -415,7 +457,7 @@ class _AddScriptDialogState extends State<_AddScriptDialog> {
             ),
             contentPadding: const EdgeInsets.all(10),
             filled: true,
-            fillColor: AppColors.surfaceVariant,
+            fillColor: Colors.white,
           ),
         ),
       ],
