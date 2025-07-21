@@ -96,6 +96,12 @@ A minimalistic, fast, and feature-rich web browser built with Flutter, designed 
 - **Modern Flutter**: Latest best practices and patterns
 - **Maintainable Code**: Clear structure and documentation
 
+### Recent Bug Fixes
+- **RegExp Syntax Error**: Fixed character class syntax errors in userscript_manager.dart
+  - Resolved `[^"\']+` pattern issues causing build failures
+  - Converted raw strings to regular strings with proper escaping
+  - Affected patterns: location.hostname, window.location.host, document.domain detection
+
 ### User Experience Enhancements
 - **Intuitive Navigation**: Natural iOS-like interaction patterns
 - **Visual Consistency**: Unified design language throughout
