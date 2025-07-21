@@ -308,9 +308,9 @@ class _AddScriptDialogState extends State<_AddScriptDialog> {
     final patterns = [
       RegExp(r'@match\s+https?://([^/\s]+)', caseSensitive: false),
       RegExp(r'@include\s+https?://([^/\s]+)', caseSensitive: false),
-      RegExp(r'location\.hostname.*["\']([^"\']+)["\']', caseSensitive: false),
-      RegExp(r'window\.location\.host.*["\']([^"\']+)["\']', caseSensitive: false),
-      RegExp(r'document\.domain.*["\']([^"\']+)["\']', caseSensitive: false),
+      RegExp('location\\.hostname.*["\']([^"\']+)["\']', caseSensitive: false),
+      RegExp('window\\.location\\.host.*["\']([^"\']+)["\']', caseSensitive: false),
+      RegExp('document\\.domain.*["\']([^"\']+)["\']', caseSensitive: false),
     ];
 
     for (final pattern in patterns) {
